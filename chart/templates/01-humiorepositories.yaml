@@ -1,5 +1,5 @@
-{{- $fullName := include "helm-logscale-content.fullname" . -}}
-{{- $labels := include "helm-logscale-content.labels" . -}}
+{{- $fullName := include "logscale-content.fullname" . -}}
+{{- $labels := include "logscale-content.labels" . -}}
 {{- $managedClusterName := .Values.managedClusterName -}}
 {{- $prefix := .Values.repositoryDefault.repoPrefix -}}
 {{- $suffix := .Values.repositoryDefault.repoSuffix -}}

@@ -1,1 +1,1 @@
-# helm-logscale-content
+# logscale-content
