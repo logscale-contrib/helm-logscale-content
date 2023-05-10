@@ -9,10 +9,11 @@
 {{- $allowDataDeletion := .Values.repositoryDefault.allowDataDeletion -}}
 {{- range .Values.repositories }}
 {{- if .create | default true }}
+{{- $crName := print $fullName "-" .name  -}}
 apiVersion: core.humio.com/v1alpha1
 kind: HumioRepository
 metadata:
-  name: {{ .name }}-{{ $fullName }}
+  name: {{ $crName }}
   labels:
     {{- $labels | nindent 4 }}  
 spec:
@@ -27,5 +28,15 @@ spec:
     storageSizeInGB: {{ .storageSizeInGB | default $storageSizeInGB }}
     timeInDays: {{ .timeInDays | default $timeInDays }}
 ---
+{{- range .parsers }}
+apiVersion: core.humio.com/v1alpha1
+kind: HumioParser
+metadata:
+  name: {{ $crName }}-{{ .name }}
+spec:
+  managedClusterName: {{ $managedClusterName }}
+  {{ toYaml . | nindent 2 }}  
+---
+{{- end }}
 {{- end }}
 {{- end }}

@@ -15,16 +15,102 @@ repositoryDefault:
   allowDataDeletion: false
 repositories:
   - name: iaas-google-cloud
-    create: false
     # ingestSizeInGB: "1073741824"
     # storageSizeInGB: "1073741824"
     # timeInDays: "9999"
     # allowDataDeletion: false
   - name: apps-kubernetes
-    create: true
+    parsers:
+      - name: kube-logging
+        parserScript: |
+          parsejson() | _rawstring:=@rawstring
+          | case {
+              message=/^\{/ | @type:="kube-logging-json" | @rawstring:=message | parsejson(field=message,prefix="event.") | drop(fields=[message]);
+              * | @type:="kube-logging-string"  | @rawstring:=message;
+            }
+          | case {
+            kubernetes.container_name = "humio" |
+                  @type:="humio" |
+                  @rawstring:=rename(event.message) |
+                  class:=rename(event.class) |
+                  kind:=rename(event.kind) |
+                  loglevel:=rename(event.loglevel) |
+                  thread:=rename(event.thread) |
+                  vhost:=rename(event.vhost) |
+                  @timestamp := rename(event.@timestamp) |
+                  kvParse();
+            kubernetes.container_name = "humio-operator" |
+                  @type:="humio-operator" |
+                  @rawstring:=rename(event.msg) | drop(fields=[event.ts]);
+            kubernetes.container_name = "event-tailer"  | @type:="k8s-event";
+            kubernetes.container_name = "host-tailer*"  | @type:=kubernetes.container_name | @rawstring:=rename(event.MESSAGE);
+            event.msg="*" |
+                @type:="kube-logging-json-msg" |
+                @rawstring:=rename(event.msg);
+            *;
+          }
+        testData:
+            - |
+              {"stream":"stderr","logtag":"F","message":"this is just an event","kubernetes":{"pod_name":"ops-678d8cd7bc-z72r5","namespace_name":"logscale-operator","pod_id":"5fe1b843-01ec-4d29-bfb7-796665c76f97","labels":{"app":"humio-operator","app.kubernetes.io/instance":"ops","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"humio-operator","helm.sh/chart":"humio-operator-0.18.0","pod-template-hash":"678d8cd7bc"},"annotations":{"productID":"none","productName":"humio-operator","productVersion":"0.18.0"},"host":"gke-logscale-prod-ops-compute-44fb8724-0pzt","container_name":"humio-operator","docker_id":"0e5bae5bd0edc93a1281131aebf3ccaa56926f3cd2b9fd969f104bfb4e549ef8","container_hash":"docker.io/humio/humio-operator@sha256:f78a981d3bdbffddd097a7395f859eb6d2ffebfd0345c96b4385c8b5ec3eab1c","container_image":"docker.io/humio/humio-operator:0.18.0"}}
+            - |
+              {"stream":"stderr","logtag":"F","message":"{\"level\":\"info\",\"ts\":\"2023-05-08T11:54:36.701998152Z\",\"caller\":\"controllers/humiocluster_pod_status.go:106\",\"func\":\"github.com/humio/humio-operator/controllers.(*HumioClusterReconciler).getPodsStatus\",\"msg\":\"pod status readyCount=3 notReadyCount=0 podsReady=[ops-logscale-core-zvpuwy ops-logscale-core-ndztkg ops-logscale-core-uupmaq] podsNotReady=[]\",\"Operator.Commit\":\"58aaa7326f32e96a85bda10acfce95fb86509bce\",\"Operator.Date\":\"2023-04-06T15:23:58+00:00\",\"Operator.Version\":\"0.18.0\",\"Request.Namespace\":\"logscale-ops\",\"Request.Name\":\"ops-logscale\",\"Request.Type\":\"HumioClusterReconciler\",\"Reconcile.ID\":\"nbluea\"}","kubernetes":{"pod_name":"ops-678d8cd7bc-z72r5","namespace_name":"logscale-operator","pod_id":"5fe1b843-01ec-4d29-bfb7-796665c76f97","labels":{"app":"humio-operator","app.kubernetes.io/instance":"ops","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"humio-operator","helm.sh/chart":"humio-operator-0.18.0","pod-template-hash":"678d8cd7bc"},"annotations":{"productID":"none","productName":"humio-operator","productVersion":"0.18.0"},"host":"gke-logscale-prod-ops-compute-44fb8724-0pzt","container_name":"humio-operator","docker_id":"0e5bae5bd0edc93a1281131aebf3ccaa56926f3cd2b9fd969f104bfb4e549ef8","container_hash":"docker.io/humio/humio-operator@sha256:f78a981d3bdbffddd097a7395f859eb6d2ffebfd0345c96b4385c8b5ec3eab1c","container_image":"docker.io/humio/humio-operator:0.18.0"}}
+            - |
+              {"stream":"stdout","logtag":"F","message":"{\"message\":\"2023-05-08T21:25:40.833+0000 [bucket-storage-download-scheduler] WARN  c.h.b.d.BucketStorageDownloadJobImpl 28 - Download from bucket failed for segment='uF6axMUpA16ncYmAUMmEnX7g' dataspace='humio-audit' dataspaceId='bq0ayqgLSvTx2zFG1faqKo9Z' datasource='kkQDbN7LITOQ0d9XCCv3JzcX' preferAuxFile=None com.humio.bucketstorage.BucketStorage$ObjectNotInBucketException: No such file in gcs key=storage/dataspace_bq0ayqgLSvTx2zFG1faqKo9Z/datasource_kkQDbN7LITOQ0d9XCCv3JzcX/aes-humiodata.uF6axMUpA16ncYmAUMmEnX7g target=/app/humio/humio/humio-data/dataspace_bq0ayqgLSvTx2zFG1faqKo9Z/datasource_kkQDbN7LITOQ0d9XCCv3JzcX/humiodata.uF6axMUpA16ncYmAUMmEnX7g bucket=logscale-ops\\n\\tat com.humio.bucketstorage.googlecloudstorage.GCSBucketStorageImpl.$anonfun$doDownloadImpl$1(GCSBucketStorageImpl.scala:236) ~[bucketstorage.jar:?]\\n\\tat scala.concurrent.impl.Promise$Transformation.run(Promise.scala:470) ~[scala-library-2.13.10.jar:?]\\n\\tat akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:63) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat akka.dispatch.BatchingExecutor$BlockableBatch.$anonfun$run$1(BatchingExecutor.scala:100) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18) ~[scala-library-2.13.10.jar:?]\\n\\tat scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:94) ~[scala-library-2.13.10.jar:?]\\n\\tat akka.dispatch.BatchingExecutor$BlockableBatch.run(BatchingExecutor.scala:100) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:49) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]\\n\\tat java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]\\n\\tat java.lang.Thread.run(Thread.java:1589) ~[?:?]\\n\",\"@timestamp\":1683581140833,\"class\":\"c.h.b.d.BucketStorageDownloadJobImpl\",\"thread\":\"bucket-storage-download-scheduler\",\"loglevel\":\"WARN\",\"kind\":\"logs\",\"vhost\":\"28\"}","kubernetes":{"pod_name":"ops-logscale-core-qvyqls","namespace_name":"logscale-ops","pod_id":"fea6d73b-b45e-4e04-9f7b-e9c9f4ec093c","labels":{"app.kubernetes.io/instance":"ops-logscale","app.kubernetes.io/managed-by":"humio-operator","app.kubernetes.io/name":"humio","humio.com/node-pool":"ops-logscale"},"annotations":{"humio.com/pod-hash":"e4fb3e5a9ad8f267260b17606f972ae2239d452295d223e7344ef562233e6ad7","humio.com/pod-revision":"1","instrumentation.opentelemetry.io/container-names":"humio","instrumentation.opentelemetry.io/inject-java":"ops-logscale-java","productID":"none","productName":"humio","productVersion":"1.89.0--SNAPSHOT--build-423199--SHA-a5fb8c27a9f860a7d591a8dad518db11522cbb68"},"host":"gke-logscale-prod-ops-compute-44fb8724-6nz5","container_name":"humio","docker_id":"d561b163a1f87de26d15edddf0291d6ca44fbaa5e5f2cf0ac0d643781bb94e7a","container_hash":"us-central1-docker.pkg.dev/logsr-life-production/logscale-prod-ops/docker.io/humio/humio-core@sha256:aef89e263ae9c6d2ecf9de8ac08d5a6edbc0bdf8281d407527996715215d8d6a","container_image":"us-central1-docker.pkg.dev/logsr-life-production/logscale-prod-ops/docker.io/humio/humio-core:1.89.0--SNAPSHOT--build-423199--SHA-a5fb8c27a9f860a7d591a8dad518db11522cbb68"}}
+        tagFields:
+          - "@type"
+          - kind
+          - vhost
+          - kubernetes.namespace_name
+          - kubernetes.labels.app.kubernetes.io/name
+          - kubernetes.labels.app.kubernetes.io/part-of
+          - kubernetes.labels.app.kubernetes.io/instance
+          - kubernetes.labels.app.kubernetes.io/component        
+
   - name: iaas-aws
-    create: false
   - name: iaas-azure
-    create: false
   - name: infra-kubernetes
-    create: true
+    parsers:
+      - name: kube-logging
+        parserScript: |
+          parsejson() | _rawstring:=@rawstring
+          | case {
+              message=/^\{/ | @type:="kube-logging-json" | @rawstring:=message | parsejson(field=message,prefix="event.") | drop(fields=[message]);
+              * | @type:="kube-logging-string"  | @rawstring:=message;
+            }
+          | case {
+            kubernetes.container_name = "humio" |
+                  @type:="humio" |
+                  @rawstring:=rename(event.message) |
+                  class:=rename(event.class) |
+                  kind:=rename(event.kind) |
+                  loglevel:=rename(event.loglevel) |
+                  thread:=rename(event.thread) |
+                  vhost:=rename(event.vhost) |
+                  @timestamp := rename(event.@timestamp) |
+                  kvParse();
+            kubernetes.container_name = "humio-operator" |
+                  @type:="humio-operator" |
+                  @rawstring:=rename(event.msg) | drop(fields=[event.ts]);
+            kubernetes.container_name = "event-tailer"  | @type:="k8s-event";
+            kubernetes.container_name = "host-tailer*"  | @type:=kubernetes.container_name | @rawstring:=rename(event.MESSAGE);
+            event.msg="*" |
+                @type:="kube-logging-json-msg" |
+                @rawstring:=rename(event.msg);
+            *;
+          }
+        testData:
+            - |
+              {"stream":"stderr","logtag":"F","message":"this is just an event","kubernetes":{"pod_name":"ops-678d8cd7bc-z72r5","namespace_name":"logscale-operator","pod_id":"5fe1b843-01ec-4d29-bfb7-796665c76f97","labels":{"app":"humio-operator","app.kubernetes.io/instance":"ops","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"humio-operator","helm.sh/chart":"humio-operator-0.18.0","pod-template-hash":"678d8cd7bc"},"annotations":{"productID":"none","productName":"humio-operator","productVersion":"0.18.0"},"host":"gke-logscale-prod-ops-compute-44fb8724-0pzt","container_name":"humio-operator","docker_id":"0e5bae5bd0edc93a1281131aebf3ccaa56926f3cd2b9fd969f104bfb4e549ef8","container_hash":"docker.io/humio/humio-operator@sha256:f78a981d3bdbffddd097a7395f859eb6d2ffebfd0345c96b4385c8b5ec3eab1c","container_image":"docker.io/humio/humio-operator:0.18.0"}}
+            - |
+              {"stream":"stderr","logtag":"F","message":"{\"level\":\"info\",\"ts\":\"2023-05-08T11:54:36.701998152Z\",\"caller\":\"controllers/humiocluster_pod_status.go:106\",\"func\":\"github.com/humio/humio-operator/controllers.(*HumioClusterReconciler).getPodsStatus\",\"msg\":\"pod status readyCount=3 notReadyCount=0 podsReady=[ops-logscale-core-zvpuwy ops-logscale-core-ndztkg ops-logscale-core-uupmaq] podsNotReady=[]\",\"Operator.Commit\":\"58aaa7326f32e96a85bda10acfce95fb86509bce\",\"Operator.Date\":\"2023-04-06T15:23:58+00:00\",\"Operator.Version\":\"0.18.0\",\"Request.Namespace\":\"logscale-ops\",\"Request.Name\":\"ops-logscale\",\"Request.Type\":\"HumioClusterReconciler\",\"Reconcile.ID\":\"nbluea\"}","kubernetes":{"pod_name":"ops-678d8cd7bc-z72r5","namespace_name":"logscale-operator","pod_id":"5fe1b843-01ec-4d29-bfb7-796665c76f97","labels":{"app":"humio-operator","app.kubernetes.io/instance":"ops","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"humio-operator","helm.sh/chart":"humio-operator-0.18.0","pod-template-hash":"678d8cd7bc"},"annotations":{"productID":"none","productName":"humio-operator","productVersion":"0.18.0"},"host":"gke-logscale-prod-ops-compute-44fb8724-0pzt","container_name":"humio-operator","docker_id":"0e5bae5bd0edc93a1281131aebf3ccaa56926f3cd2b9fd969f104bfb4e549ef8","container_hash":"docker.io/humio/humio-operator@sha256:f78a981d3bdbffddd097a7395f859eb6d2ffebfd0345c96b4385c8b5ec3eab1c","container_image":"docker.io/humio/humio-operator:0.18.0"}}
+            - |
+              {"stream":"stdout","logtag":"F","message":"{\"message\":\"2023-05-08T21:25:40.833+0000 [bucket-storage-download-scheduler] WARN  c.h.b.d.BucketStorageDownloadJobImpl 28 - Download from bucket failed for segment='uF6axMUpA16ncYmAUMmEnX7g' dataspace='humio-audit' dataspaceId='bq0ayqgLSvTx2zFG1faqKo9Z' datasource='kkQDbN7LITOQ0d9XCCv3JzcX' preferAuxFile=None com.humio.bucketstorage.BucketStorage$ObjectNotInBucketException: No such file in gcs key=storage/dataspace_bq0ayqgLSvTx2zFG1faqKo9Z/datasource_kkQDbN7LITOQ0d9XCCv3JzcX/aes-humiodata.uF6axMUpA16ncYmAUMmEnX7g target=/app/humio/humio/humio-data/dataspace_bq0ayqgLSvTx2zFG1faqKo9Z/datasource_kkQDbN7LITOQ0d9XCCv3JzcX/humiodata.uF6axMUpA16ncYmAUMmEnX7g bucket=logscale-ops\\n\\tat com.humio.bucketstorage.googlecloudstorage.GCSBucketStorageImpl.$anonfun$doDownloadImpl$1(GCSBucketStorageImpl.scala:236) ~[bucketstorage.jar:?]\\n\\tat scala.concurrent.impl.Promise$Transformation.run(Promise.scala:470) ~[scala-library-2.13.10.jar:?]\\n\\tat akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:63) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat akka.dispatch.BatchingExecutor$BlockableBatch.$anonfun$run$1(BatchingExecutor.scala:100) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18) ~[scala-library-2.13.10.jar:?]\\n\\tat scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:94) ~[scala-library-2.13.10.jar:?]\\n\\tat akka.dispatch.BatchingExecutor$BlockableBatch.run(BatchingExecutor.scala:100) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:49) ~[akka-actor_2.13-2.6.19.jar:2.6.19]\\n\\tat java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]\\n\\tat java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]\\n\\tat java.lang.Thread.run(Thread.java:1589) ~[?:?]\\n\",\"@timestamp\":1683581140833,\"class\":\"c.h.b.d.BucketStorageDownloadJobImpl\",\"thread\":\"bucket-storage-download-scheduler\",\"loglevel\":\"WARN\",\"kind\":\"logs\",\"vhost\":\"28\"}","kubernetes":{"pod_name":"ops-logscale-core-qvyqls","namespace_name":"logscale-ops","pod_id":"fea6d73b-b45e-4e04-9f7b-e9c9f4ec093c","labels":{"app.kubernetes.io/instance":"ops-logscale","app.kubernetes.io/managed-by":"humio-operator","app.kubernetes.io/name":"humio","humio.com/node-pool":"ops-logscale"},"annotations":{"humio.com/pod-hash":"e4fb3e5a9ad8f267260b17606f972ae2239d452295d223e7344ef562233e6ad7","humio.com/pod-revision":"1","instrumentation.opentelemetry.io/container-names":"humio","instrumentation.opentelemetry.io/inject-java":"ops-logscale-java","productID":"none","productName":"humio","productVersion":"1.89.0--SNAPSHOT--build-423199--SHA-a5fb8c27a9f860a7d591a8dad518db11522cbb68"},"host":"gke-logscale-prod-ops-compute-44fb8724-6nz5","container_name":"humio","docker_id":"d561b163a1f87de26d15edddf0291d6ca44fbaa5e5f2cf0ac0d643781bb94e7a","container_hash":"us-central1-docker.pkg.dev/logsr-life-production/logscale-prod-ops/docker.io/humio/humio-core@sha256:aef89e263ae9c6d2ecf9de8ac08d5a6edbc0bdf8281d407527996715215d8d6a","container_image":"us-central1-docker.pkg.dev/logsr-life-production/logscale-prod-ops/docker.io/humio/humio-core:1.89.0--SNAPSHOT--build-423199--SHA-a5fb8c27a9f860a7d591a8dad518db11522cbb68"}}
+        tagFields:
+          - "@type"
+          - kind
+          - vhost
+          - kubernetes.namespace_name
+          - kubernetes.labels.app.kubernetes.io/name
+          - kubernetes.labels.app.kubernetes.io/part-of
+          - kubernetes.labels.app.kubernetes.io/instance
+          - kubernetes.labels.app.kubernetes.io/component        
