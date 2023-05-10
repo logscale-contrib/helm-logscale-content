@@ -1,0 +1,36 @@
+# Default values for helm-logscale-content.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+managedClusterName: ops-logscale
+repositoryDefault:
+  repoPrefix: ""
+  repoSuffix: ""
+  ingestSizeInGB: "1073741824"
+  storageSizeInGB: "1073741824"
+  timeInDays: "9999"
+  allowDataDeletion: false
+repositories:
+  - name: iaas-google-cloud
+    create: false
+    allowDataDeletion: true
+    timeInDays: 90
+  - name: apps-kubernetes
+    create: true
+    allowDataDeletion: true
+    timeInDays: 90
+  - name: iaas-aws
+    create: false
+    allowDataDeletion: true
+    timeInDays: 90
+  - name: iaas-azure
+    create: false
+    allowDataDeletion: true
+    timeInDays: 90
+  - name: infra-kubernetes
+    create: true
+    allowDataDeletion: true
+    timeInDays: 90

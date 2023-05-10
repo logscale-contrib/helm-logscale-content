@@ -1,0 +1,32 @@
+{{- $fullName := include "helm-logscale-content.fullname" . -}}
+{{- $labels := include "helm-logscale-content.labels" . -}}
+{{- $managedClusterName := .Values.managedClusterName -}}
+{{- $prefix := .Values.repositoryDefault.repoPrefix -}}
+{{- $suffix := .Values.repositoryDefault.repoSuffix -}}
+{{- $ingestSizeInGB := .Values.repositoryDefault.ingestSizeInGB -}}
+{{- $storageSizeInGB := .Values.repositoryDefault.storageSizeInGB -}}
+{{- $timeInDays := .Values.repositoryDefault.repoStimeInDaysuffix -}}
+{{- $allowDataDeletion := .Values.repositoryDefault.allowDataDeletion -}}
+apiVersion: v1
+items:
+{{- range .Values.repositories }}
+{{- if .create | default true }}
+- apiVersion: core.humio.com/v1alpha1
+  kind: HumioRepository
+  metadata:
+    name: {{ .name }}-{{ $fullName }}
+    labels:
+      {{- $labels | nindent 6 }}  
+  spec:
+    allowDataDeletion: {{ .allowDataDeletion | default $allowDataDeletion }}
+    {{- if .description }}
+    description: {{ .description }}
+    {{- end }}
+    managedClusterName: {{ $managedClusterName }}
+    name: {{$prefix }}{{ .name }}{{ $suffix }}
+    retention:
+      ingestSizeInGB: {{ .ingestSizeInGB | default  $ingestSizeInGB }}
+      storageSizeInGB: {{ .storageSizeInGB | default $storageSizeInGB }}
+      timeInDays: {{ .timeInDays | default $timeInDays }}
+{{- end }}
+{{- end }}
