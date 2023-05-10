@@ -5,7 +5,7 @@
 {{- $suffix := .Values.repositoryDefault.repoSuffix -}}
 {{- $ingestSizeInGB := .Values.repositoryDefault.ingestSizeInGB -}}
 {{- $storageSizeInGB := .Values.repositoryDefault.storageSizeInGB -}}
-{{- $timeInDays := .Values.repositoryDefault.repoStimeInDaysuffix -}}
+{{- $timeInDays := .Values.repositoryDefault.timeInDays -}}
 {{- $allowDataDeletion := .Values.repositoryDefault.allowDataDeletion -}}
 apiVersion: v1
 items:
