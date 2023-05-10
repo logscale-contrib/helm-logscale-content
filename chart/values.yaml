@@ -16,21 +16,15 @@ repositoryDefault:
 repositories:
   - name: iaas-google-cloud
     create: false
-    allowDataDeletion: true
-    timeInDays: 90
+    # ingestSizeInGB: "1073741824"
+    # storageSizeInGB: "1073741824"
+    # timeInDays: "9999"
+    # allowDataDeletion: false
   - name: apps-kubernetes
     create: true
-    allowDataDeletion: true
-    timeInDays: 90
   - name: iaas-aws
     create: false
-    allowDataDeletion: true
-    timeInDays: 90
   - name: iaas-azure
     create: false
-    allowDataDeletion: true
-    timeInDays: 90
   - name: infra-kubernetes
     create: true
-    allowDataDeletion: true
-    timeInDays: 90
