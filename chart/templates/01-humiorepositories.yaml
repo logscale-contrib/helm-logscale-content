@@ -10,6 +10,7 @@
 {{- range .Values.repositories }}
 {{- if .create | default true }}
 {{- $crName := print $fullName "-" .name  -}}
+{{- $repoName := print $prefix .name $suffix -}}
 apiVersion: core.humio.com/v1alpha1
 kind: HumioRepository
 metadata:
@@ -22,7 +23,7 @@ spec:
   description: {{ .description }}
   {{- end }}
   managedClusterName: {{ $managedClusterName }}
-  name: {{$prefix }}{{ .name }}{{ $suffix }}
+  name: {{ $repoName }}
   retention:
     ingestSizeInGB: {{ .ingestSizeInGB | default  $ingestSizeInGB }}
     storageSizeInGB: {{ .storageSizeInGB | default $storageSizeInGB }}
@@ -35,7 +36,7 @@ metadata:
   name: {{ $crName }}-{{ .name }}
 spec:
   managedClusterName: {{ $managedClusterName }}
-  repositoryName: {{ $crName }}
+  repositoryName: {{ $repoName }}
   {{ toYaml . | nindent 2 }}  
 ---
 {{- end }}
