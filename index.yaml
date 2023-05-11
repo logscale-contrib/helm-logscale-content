@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   logscale-content:
   - apiVersion: v2
+    appVersion: 1.2.1
+    created: "2023-05-11T12:43:56.866542242Z"
+    description: A Helm chart for Kubernetes
+    digest: 9b37f823d0e731d12df7ccb5b61bf5c672efdd48235c174735e62db2df39fb90
+    name: logscale-content
+    type: application
+    urls:
+    - https://github.com/logscale-contrib/helm-logscale-content/releases/download/v1.2.1/logscale-content-1.2.1.tgz
+    version: 1.2.1
+  - apiVersion: v2
     appVersion: 1.2.0
     created: "2023-05-11T12:41:13.681158674Z"
     description: A Helm chart for Kubernetes
@@ -71,4 +81,4 @@ entries:
     urls:
     - https://github.com/logscale-contrib/helm-logscale-content/releases/download/v1.0.0/logscale-content-1.0.0.tgz
     version: 1.0.0
-generated: "2023-05-11T12:41:13.678986533Z"
+generated: "2023-05-11T12:43:56.865410333Z"
