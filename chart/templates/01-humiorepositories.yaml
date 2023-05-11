@@ -52,6 +52,7 @@ metadata:
     {{- $labels | nindent 4 }}  
 spec:
   managedClusterName: {{ $managedClusterName }}
+  name: {{ .name }}
   repositoryName: {{ $repoName }}
   {{- if or ( .createSecret | default true ) .tokenSecretName }}
   tokenSecretName: {{ .tokenSecretName | default $itName }}
