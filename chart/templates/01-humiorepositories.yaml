@@ -53,7 +53,7 @@ metadata:
 spec:
   managedClusterName: {{ $managedClusterName }}
   repositoryName: {{ $repoName }}
-  {{- if or ( .create | default true ) .tokenSecretName }}
+  {{- if or ( .createSecret | default true ) .tokenSecretName }}
   tokenSecretName: {{ .tokenSecretName | default $itName }}
   {{- end }}
   {{- if .parserName }}
