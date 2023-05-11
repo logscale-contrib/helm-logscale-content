@@ -34,10 +34,31 @@ apiVersion: core.humio.com/v1alpha1
 kind: HumioParser
 metadata:
   name: {{ $crName }}-{{ .name }}
+  labels:
+    {{- $labels | nindent 4 }}  
 spec:
   managedClusterName: {{ $managedClusterName }}
   repositoryName: {{ $repoName }}
   {{ toYaml . | nindent 2 }}  
+---
+{{- end }}
+{{- range .ingestTokens }}
+{{- $itName := print $crName "-" .name  -}}
+apiVersion: core.humio.com/v1alpha1
+kind: HumioIngestToken
+metadata:
+  name: {{ $itName }}
+  labels:
+    {{- $labels | nindent 4 }}  
+spec:
+  managedClusterName: {{ $managedClusterName }}
+  repositoryName: {{ $repoName }}
+  {{- if or ( .create | default true ) .tokenSecretName }}
+  tokenSecretName: {{ .tokenSecretName | default $itName }}
+  {{- end }}
+  {{- if .parserName }}
+  parserName: {{.parserName }}
+  {{- end }}
 ---
 {{- end }}
 {{- end }}
