@@ -78,7 +78,7 @@ spec:
     - match:
         secretKey: {{ .eso.secretKey | default "token" }} # Source Kubernetes secret key to be pushed
         remoteRef:
-          remoteKey: {{ .eso.remoteKey | default .tokenSecretName }} # Remote reference (where the secret is going to be pushed)
+          remoteKey: {{ .eso.remoteKey | default .tokenSecretName | default $itName }} # Remote reference (where the secret is going to be pushed)
 ---          
 {{- end }}
 {{- end }}
