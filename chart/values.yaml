@@ -13,6 +13,10 @@ repositoryDefault:
   storageSizeInGB: "1073741824"
   timeInDays: "9999"
   allowDataDeletion: false
+eso:
+  secretStoreRefs:
+    - name: global
+      kind: ClusterSecretStore
 repositories:
   - name: iaas-google-cloud
   # ingestSizeInGB: "1073741824"
@@ -68,6 +72,8 @@ repositories:
     ingestTokens:
       - name: primary
         parserName: kube-logging
+        eso:
+          push: true
   - name: iaas-aws
   - name: iaas-azure
   - name: infra-kubernetes

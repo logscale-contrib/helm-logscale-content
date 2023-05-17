@@ -9,8 +9,8 @@
 {{- $allowDataDeletion := .Values.repositoryDefault.allowDataDeletion -}}
 {{- range .Values.repositories }}
 {{- if .create | default true }}
-{{- $crName := print $fullName "-" .name  -}}
-{{- $repoName := print $prefix .name $suffix -}}
+{{- $crName := print $fullName "-" .name  }}
+{{- $repoName := print $prefix .name $suffix }}
 apiVersion: core.humio.com/v1alpha1
 kind: HumioRepository
 metadata:
@@ -61,6 +61,27 @@ spec:
   parserName: {{.parserName }}
   {{- end }}
 ---
+{{- if .eso }}
+{{- if .eso.push }}
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: {{ .eso.name | default $itName }}
+spec:
+  refreshInterval: {{ .eso.refreshInterval | default "10s" | quote }} # Refresh interval for which push secret will reconcile
+  secretStoreRefs: 
+{{ toYaml $.Values.eso.secretStoreRefs | indent 4 }}
+  selector:
+    secret:
+      name: {{ .tokenSecretName | default $itName }}
+  data:
+    - match:
+        secretKey: {{ .eso.secretKey | default "token" }} # Source Kubernetes secret key to be pushed
+        remoteRef:
+          remoteKey: {{ .eso.remoteKey | default .tokenSecretName }} # Remote reference (where the secret is going to be pushed)
+---          
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
